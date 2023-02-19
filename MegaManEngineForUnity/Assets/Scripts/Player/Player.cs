@@ -124,7 +124,7 @@ public class Player : MonoBehaviour
     // Velocities.
     public float moveSpeed = 80;
     public float climbSpeed = 80;
-    public float jumpForce = 370;
+    public float jumpForce = 740;
 
     // Jumps.
     public int maxJumps = 1;
