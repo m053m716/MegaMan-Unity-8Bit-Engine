@@ -28,6 +28,11 @@ public class Menu_Cutscene : Menu
         for (int i = 0; i < items.Length; i++)
         {
             CutsceneItem item = items[i];
+            if (Input.GetButtonDown("Start"))
+            {
+                Exit();
+                yield return null;
+            }
 
             // Sets the animator state. Each cutscene animator should have an animIndex variable
             // which tells it which part of the cutscene should be played.

@@ -15,6 +15,10 @@ public class Menu_CtrlIntro : MonoBehaviour
     private void Update()
     {
         menu.Update();
+        if (Input.GetButtonDown("Start")) // Skip the cutscene
+        {
+            GameManager.GoToStageSelect();
+        }
     }
     private void OnGUI()
     {

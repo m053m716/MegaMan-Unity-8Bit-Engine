@@ -69,6 +69,11 @@ public class Menu_CtrlCutscene : MonoBehaviour
                                 yield return null;
                         }
                         scene.guiText = item.text[j].Substring(0, maxChars);
+                        if (Input.GetButtonDown("Start")) // Skip the cutscene
+                        {
+                            GameManager.GoToStageSelect();
+                            yield return null;
+                        }
 
                         yield return new WaitForSecondsRealtime(0.02f);
                     }
@@ -76,6 +81,11 @@ public class Menu_CtrlCutscene : MonoBehaviour
                     // Waits for the Jump button to be pressed.
                     while (!Input.GetButtonDown("Jump"))
                     {
+                        if (Input.GetButtonDown("Start")) // Skip the cutscene
+                        {
+                            GameManager.GoToStageSelect();
+                            yield return null;
+                        }
                         yield return null;
                     }
                 }
