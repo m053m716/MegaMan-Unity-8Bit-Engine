@@ -32,7 +32,7 @@ public class Menu_Intro : Menu
         {
             countdown -= Time.deltaTime;
             if (countdown <= 0.0f)
-                if (Input.GetButtonDown("Jump"))
+                if (Input.GetButton("Jump"))
                 {
                     GameManager.GoToStageSelect();
                 } else
