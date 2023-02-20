@@ -7,7 +7,8 @@ using static UnityEditor.Progress;
 [System.Serializable]
 public class Menu_StageSelect : Menu
 {
-
+    [SerializeField] private GameObject _dataBackground;
+    private SpriteRenderer _backgroundSpriteRenderer;
     private Vector2 inputVec;
     public float inputCooldown;
     private float lastAngle;
@@ -112,8 +113,10 @@ public class Menu_StageSelect : Menu
 
     [Header("Data Elements")]
 
-    public AudioClip dataAudioMove;
-    public AudioClip dataAudioChange;
+    [SerializeField] private AudioClip dataAudioMove;
+    [SerializeField] private AudioClip dataAudioChange;
+    [SerializeField] private AudioClip dataAudioSave;
+    [SerializeField] private AudioClip dataAudioLoad;
 
     public Vector2 dataSelectorOrigin;
     public Vector2Int dataIndex;
@@ -126,6 +129,9 @@ public class Menu_StageSelect : Menu
 
     public override void Start()
     {
+        font = (GUISkin)Resources.Load("GUI/8BitFont", typeof(GUISkin));
+        _backgroundSpriteRenderer = _dataBackground.GetComponent<SpriteRenderer>();
+
         Time.timeScale = 1.0f;
         stageIndex = GameManager.lastStageSelected;
         inputVec = Vector2.zero;
@@ -137,16 +143,14 @@ public class Menu_StageSelect : Menu
         string s = GameManager.LoadData(dataIndex.y, false);
         SetDataDescription(s);
 
-        ChangeRoom(Rooms.MainStage);
-        stageSelected = false;
-        stageCooldown = 1.0f;
-
         RefreshFortressStages();
         
         Helper.SetAspectRatio(cmr);
         prevScreenXY = new Vector2(Screen.width, Screen.height);
 
-        font = (GUISkin)Resources.Load("GUI/8BitFont", typeof(GUISkin));
+        ChangeRoom(Rooms.MainStage);
+        stageSelected = false;
+        stageCooldown = 1.0f;
 
         GameManager.checkpointActive = false;
         GameManager.stageItems.Clear();
@@ -503,9 +507,6 @@ public class Menu_StageSelect : Menu
         GameManager.playFortressStageUnlockAnimation = false;
 
     }
-   
-
-
     private void InputMainStageSelect()
     {
         // Normally the moveAngle should be one of [-180, -90, 0, 90, 180].
@@ -552,7 +553,6 @@ public class Menu_StageSelect : Menu
         else
             selectMainSprite.sprite = Time.time % 0.5f < 0.25f ? selectFlashStage1 : selectFlashStage2;
     }
-
     private void InputFortressStageSelect()
     {
         if (fortressPlayingAnimation)
@@ -669,7 +669,6 @@ public class Menu_StageSelect : Menu
             }
         }
     }
-
     private void InputShopStageSelect()
     {
         _HandleShopStageSelectorMovement();
@@ -726,7 +725,6 @@ public class Menu_StageSelect : Menu
             }
         }
     }
-
     private void _HandleUpdatingShopCatalog()
     {
         GameObject item;
@@ -754,8 +752,7 @@ public class Menu_StageSelect : Menu
             }
         }
     }
-
-    private Boolean _HandleUpdatingShopSelectedItemDisplay()
+    private bool _HandleUpdatingShopSelectedItemDisplay()
     {
         GameObject item;
         if ((shopIndex.z * 6 + shopIndex.x) < itemCatalog.Length)
@@ -778,7 +775,6 @@ public class Menu_StageSelect : Menu
         return item != null;
             
     }
-
     private void UpdateShopStageSelect()
     {
         shopSelect.sprite = Time.time % 0.5f < 0.25f ? selectFlashShop1 : selectFlashShop2;
@@ -824,7 +820,7 @@ public class Menu_StageSelect : Menu
         _HandleUpdatingShopCatalog();
 
         // Indicate the currently-selected item (and how many user owns).
-        Boolean isValidItem = _HandleUpdatingShopSelectedItemDisplay();
+        bool isValidItem = _HandleUpdatingShopSelectedItemDisplay();
         if (isValidItem)
         {
             // If the item is in the catalog, then list how many are in our inventory.
@@ -870,7 +866,6 @@ public class Menu_StageSelect : Menu
                            font.label);
 
     }
-
     private void InputDataStageSelect()
     {
         // Normally the moveAngle should be one of [-180, -90, 0, 90, 180].
@@ -887,29 +882,35 @@ public class Menu_StageSelect : Menu
         SetDataDescription(s);
 
         if (dataIndex.x < 0)
+        {
+            font.label.normal.textColor = Color.white;
             ChangeRoom(Rooms.MainStage);
+        }
         else if (lastAngle == 0 || lastAngle == 180 || lastAngle == -180)
+        {
             Helper.PlaySound(dataAudioChange);
+        }
         else
+        {
             Helper.PlaySound(dataAudioMove);
-
-
+        }
         dataIndex.x = Mathf.Clamp(dataIndex.x, 0, 1);
         dataIndex.y = Mathf.Clamp(dataIndex.y, 0, 9);
     }
     private void UpdateDataStageSelect()
     {
         SLButton.sprite = dataIndex.x == 0 ? SaveSprite : LoadSprite;
-
+        _backgroundSpriteRenderer.color = dataIndex.x == 0 ? Color.gray : Color.white;
+        font.label.normal.textColor = dataIndex.x == 0 ? Color.red : Color.white;
         if (Input.GetButtonDown("Start"))
         {
             if (dataIndex.x == 0)
             {
                 GameManager.SaveData(dataIndex.y);
-                Helper.PlaySound(dataAudioChange);
+                Helper.PlaySound(dataAudioSave);
             } else {
                 GameManager.LoadData(dataIndex.y, true);
-                Helper.PlaySound(dataAudioChange);
+                Helper.PlaySound(dataAudioLoad);
                 RefreshFortressStages();
             }
         }
