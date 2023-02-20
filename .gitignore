@@ -1,1 +1,4 @@
+*.csproj
+*.meta
+MegaManEngineForUnity/.vs/
 MegaManEngineForUnity/Build/
