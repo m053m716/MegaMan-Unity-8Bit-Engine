@@ -28,11 +28,6 @@ public class Menu_Cutscene : Menu
         for (int i = 0; i < items.Length; i++)
         {
             CutsceneItem item = items[i];
-            if (Input.GetButtonDown("Start"))
-            {
-                Exit();
-                yield return null;
-            }
 
             // Sets the animator state. Each cutscene animator should have an animIndex variable
             // which tells it which part of the cutscene should be played.
@@ -71,6 +66,11 @@ public class Menu_Cutscene : Menu
                         while (Input.GetButton("Jump"))
                             yield return null;
                     }
+                    if (Input.GetButtonDown("Start"))
+                    {
+                        Exit();
+                        yield return null;
+                    }
                     guiText = item.text[j].Substring(0, maxChars);
 
                     yield return new WaitForSecondsRealtime(0.02f);
@@ -79,6 +79,11 @@ public class Menu_Cutscene : Menu
                 // Waits for the Jump button to be pressed.
                 while (!Input.GetButtonDown("Jump"))
                 {
+                    if (Input.GetButtonDown("Start"))
+                    {
+                        Exit();
+                        yield return null;
+                    }
                     yield return null;
                 }
 

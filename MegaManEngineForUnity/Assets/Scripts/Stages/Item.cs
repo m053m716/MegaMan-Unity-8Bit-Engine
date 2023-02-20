@@ -25,8 +25,8 @@ public class Item
     // as each item doesn't need its own list, and the list needs
     // to be accessed by outside scripts without a specific item
     // object being present at a specific point in time.
-    public enum Items { empty, smallHealth, bigHealth, smallEnergy, bigEnergy, smallGear, bigGear, boltSmall, boltBig, boltHuge,
-                        OneUp, ETank, WTank, MTank, LTank, DoubleGearChip }
+    public enum Items { empty, smallHealth, bigHealth, smallEnergy, bigEnergy, smallGear, bigGear, boltSmall, boltBig, boltHuge, boltDev, 
+                        OneUp, ETank, WTank, MTank, LTank, DoubleGearChip, RedBullTank, Yashichi }
 
     public static Item[] itemList =
     {
@@ -40,12 +40,15 @@ public class Item
         new Item(0, 0, 0, -1, Items.boltSmall),
         new Item(0, 0, 0, -5, Items.boltBig),
         new Item(0, 0, 0, -100, Items.boltHuge),
+        new Item(0, 0, 0, -1000, Items.boltDev), 
         new Item(28, 0, 28, 50, Items.OneUp),
         new Item(28, 0, 0, 100, Items.ETank),
         new Item(0, 28, 0, 50, Items.WTank),
         new Item(28, 1000, 0, 300, Items.MTank),
         new Item(28, 1000, 0, 300, Items.LTank),
-        new Item(0, 0, 0, 0, Items.DoubleGearChip)
+        new Item(0, 0, 0, 0, Items.DoubleGearChip), 
+        new Item(28, 1000, 28, 2000, Items.RedBullTank),
+        new Item(100, 1000, 100, 5000, Items.Yashichi)
     };
 
     // This is the type of the current item.
@@ -234,6 +237,8 @@ public class Item
                 return (GameObject)Resources.Load("Prefabs/Items/BoltBig", typeof(GameObject));
             case Items.boltHuge:
                 return (GameObject)Resources.Load("Prefabs/Items/BoltHuge", typeof(GameObject));
+            case Items.boltDev:
+                return (GameObject)Resources.Load("Prefabs/Items/BoltDev", typeof(GameObject));
             case Items.OneUp:
                 return (GameObject)Resources.Load("Prefabs/Items/OneUp", typeof(GameObject));
             case Items.ETank:
@@ -246,6 +251,10 @@ public class Item
                 return (GameObject)Resources.Load("Prefabs/Items/Tank-L", typeof(GameObject));
             case Items.DoubleGearChip:
                 return (GameObject)Resources.Load("Prefabs/Items/Double Gear Chip", typeof(GameObject));
+            case Items.Yashichi:
+                return (GameObject)Resources.Load("Prefabs/Items/Yashichi", typeof(GameObject));
+            case Items.RedBullTank:
+                return (GameObject)Resources.Load("Prefabs/Items/RedBullTank", typeof(GameObject));
         }
     }
 
@@ -261,6 +270,10 @@ public class Item
                 return GameManager.recItemsOwned[(int)GameManager.RecoveryItems.MTank];
             case Items.LTank:
                 return GameManager.recItemsOwned[(int)GameManager.RecoveryItems.LTank];
+            case Items.RedBullTank:
+                return GameManager.recItemsOwned[(int)GameManager.RecoveryItems.RedBullTank];
+            case Items.Yashichi:
+                return GameManager.recItemsOwned[(int)GameManager.RecoveryItems.Yashichi];
             default:
                 return 0;
         }
@@ -281,6 +294,12 @@ public class Item
             case Items.LTank:
                 GameManager.recItemsOwned[(int)GameManager.RecoveryItems.LTank] += number;
                 return true;
+            case Items.Yashichi:
+                GameManager.recItemsOwned[(int)GameManager.RecoveryItems.Yashichi] += number;
+                return true;
+            case Items.RedBullTank:
+                GameManager.recItemsOwned[(int)GameManager.RecoveryItems.RedBullTank] += number;
+                return true;
             case Items.boltSmall:
                 GameManager.bolts += 1;
                 return true;
@@ -289,6 +308,9 @@ public class Item
                 return true;
             case Items.boltHuge:
                 GameManager.bolts += 100;
+                return true;
+            case Items.boltDev:
+                GameManager.bolts += 1000;
                 return true;
             default:
                 return false;

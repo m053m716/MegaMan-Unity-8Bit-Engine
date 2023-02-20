@@ -122,9 +122,9 @@ public class Player : MonoBehaviour
     protected Vector2 windVector;
 
     // Velocities.
-    public float moveSpeed = 80;
-    public float climbSpeed = 80;
-    public float jumpForce = 740;
+    public float moveSpeed = 100;
+    public float climbSpeed = 75;
+    public float jumpForce = 980;
 
     // Jumps.
     public int maxJumps = 1;

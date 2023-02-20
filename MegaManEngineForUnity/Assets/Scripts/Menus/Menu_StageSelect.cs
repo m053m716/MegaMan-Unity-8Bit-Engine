@@ -1,6 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEditor.Progress;
 
 [System.Serializable]
 public class Menu_StageSelect : Menu
@@ -11,10 +13,13 @@ public class Menu_StageSelect : Menu
     private float lastAngle;
 
     public Camera cmr;
-    private Vector2 cmrPos;
-    private bool cameraInRoom;
+    private Vector3 cmrPos;
+    private bool cameraInRoom = true;
     private Vector2 prevScreenXY;
     private bool cmrSnapToRoom;
+    private float _transitionTime = 0f;
+    private float _transitionComplete = 1f;
+    private static readonly float _TRANSITION_PERIOD = 0.35f; // seconds
 
     private GUISkin font;
 
@@ -92,7 +97,7 @@ public class Menu_StageSelect : Menu
     public AudioClip shopAudioMove;
 
     public Vector2 shopSelectorOrigin;
-    public Vector3Int shopIndex;
+    public Vector3Int shopIndex = new Vector3Int(0, 0, 0);
 
     public SpriteRenderer shopSelect;
     public Sprite selectFlashShop1;
@@ -119,14 +124,15 @@ public class Menu_StageSelect : Menu
 
     public string dataDesc;
 
-
     public override void Start()
     {
         Time.timeScale = 1.0f;
         stageIndex = GameManager.lastStageSelected;
         inputVec = Vector2.zero;
         inputCooldown = 0.0f;
-        lastAngle = -1000;
+        lastAngle = 0;
+        itemCatalog = new Item.Items[] { Item.Items.ETank, Item.Items.WTank, Item.Items.MTank, Item.Items.LTank, Item.Items.empty, Item.Items.OneUp, Item.Items.RedBullTank, Item.Items.Yashichi, Item.Items.empty, Item.Items.empty, Item.Items.empty, Item.Items.empty, Item.Items.boltDev };
+        cmrPos = cmr.transform.position;
 
         string s = GameManager.LoadData(dataIndex.y, false);
         SetDataDescription(s);
@@ -136,9 +142,7 @@ public class Menu_StageSelect : Menu
         stageCooldown = 1.0f;
 
         RefreshFortressStages();
-
-        itemCatalog = new Item.Items[] { Item.Items.ETank, Item.Items.WTank, Item.Items.MTank, Item.Items.boltBig };
-
+        
         Helper.SetAspectRatio(cmr);
         prevScreenXY = new Vector2(Screen.width, Screen.height);
 
@@ -156,15 +160,21 @@ public class Menu_StageSelect : Menu
                 inputVec.Normalize();
 
             if (cmrSnapToRoom)
+            {
                 cmr.transform.position = new Vector3(cmrPos.x, cmrPos.y, cmr.transform.position.z);
+            }
             else
-                cmr.transform.position = new Vector3(Mathf.MoveTowards(cmr.transform.position.x, cmrPos.x, Time.deltaTime * 320f),
-                                                     Mathf.MoveTowards(cmr.transform.position.y, cmrPos.y, Time.deltaTime * 256f),
-                                                     cmr.transform.position.z);
-            if (Vector2.Distance(cmr.transform.position, cmrPos) < 1f)
-                cameraInRoom = true;
-            else
-                cameraInRoom = false;
+            {
+                if (!cameraInRoom)
+                {
+                    _transitionTime += Time.deltaTime;
+                    _transitionComplete = Mathf.Min(_transitionTime / _TRANSITION_PERIOD, 1f);
+                    cameraInRoom = _transitionComplete >= 1f;
+                }
+                Vector3 pNew = new Vector3();
+                pNew = Vector3.Lerp(cmr.transform.position, cmrPos, _transitionComplete);
+                cmr.transform.position = pNew;
+            }
 
             if (inputVec.magnitude < 0.5f)
             {
@@ -271,12 +281,15 @@ public class Menu_StageSelect : Menu
     public void ChangeRoom(Rooms newRoom)
     {
         cameraInRoom = false;
+        _transitionTime = 0f;
+        _transitionComplete = 0f;
+        cmrSnapToRoom = false;
 
         activeRoom = newRoom;
         switch (newRoom)
         {
             case Rooms.MainStage:
-                cmrPos = new Vector2(0, 8);
+                cmrPos = new Vector3(0f, 8f, -100f);
 
                 if (GameManager.bossDead_PharaohMan)
                     pharaohIcon.enabled = false;
@@ -312,31 +325,13 @@ public class Menu_StageSelect : Menu
                     commandoIcon.enabled = true;
                 break;
             case Rooms.FortressStage:
-                cmrPos = new Vector2(0, 248);
+                cmrPos = new Vector3(0f, 248f, -100f);
                 break;
             case Rooms.Shop:
-                cmrPos = new Vector2(-272, 8);
-
-                for (int x = 0; x < 6; x++)
-                {
-                    for (int z = 0; z < 2; z++)
-                    {
-                        if (z * 6 + x >= itemCatalog.Length)
-                            itemSlots[z * 6 + x].sprite = null;
-                        else
-                        {
-                            GameObject item = Item.GetObjectFromItem(itemCatalog[(shopIndex.z + z) * 6 + x]);
-                            if (item != null)
-                                itemSlots[z * 6 + x].sprite = item.GetComponentInChildren<SpriteRenderer>().sprite;
-                            else
-                                itemSlots[z * 6 + x].sprite = null;
-                        }
-
-                    }
-                }
+                cmrPos = new Vector3(-272f, 8f, -100f);
                 break;
             case Rooms.Data:
-                cmrPos = new Vector2(272, 8);
+                cmrPos = new Vector3(272f, 8f, -100f);
                 break;
         }
     }
@@ -613,7 +608,7 @@ public class Menu_StageSelect : Menu
         for (int i = 1; i < fortIcons.Length; i++)
         {
             if (fortIcons[i] != null)
-                Object.Destroy(fortIcons[i].gameObject);
+                UnityEngine.Object.Destroy(fortIcons[i].gameObject);
         }
         if (GameManager.maxFortressStage > 0)
         {
@@ -622,7 +617,9 @@ public class Menu_StageSelect : Menu
             for (int i = 0; i < fortIcons.Length; i++)
             {
                 if (i > 0)
-                    fortIcons[i] = Object.Instantiate(fortIcons[0]);
+                {
+                    fortIcons[i] = UnityEngine.Object.Instantiate(fortIcons[0]);
+                }
                 fortIcons[i].transform.position = new Vector3(272f * (1 + i) / (1 + GameManager.maxFortressStage) - 136f,
                                                               fortIcons[0].transform.position.y,
                                                               fortIcons[0].transform.position.z);
@@ -638,10 +635,10 @@ public class Menu_StageSelect : Menu
         {
             ChangeRoom(Rooms.FortressStage);
             cmrSnapToRoom = true;
-            Object.FindObjectOfType<Menu_Controller>().StartCoroutine(PlayFortressAnimation(GameManager.maxFortressStage));
+            UnityEngine.Object.FindObjectOfType<Menu_Controller>().StartCoroutine(PlayFortressAnimation(GameManager.maxFortressStage));
             cmr.GetComponent<AudioSource>().PlaySound(fortressTrack, true);
             cmr.GetComponent<AudioSource>().loop = false;
-            Object.Destroy(cmr.GetComponent<Misc_PlayRandomTrack>());
+            UnityEngine.Object.Destroy(cmr.GetComponent<Misc_PlayRandomTrack>());
         }
     }
     public void FortressGizmos()
@@ -675,77 +672,130 @@ public class Menu_StageSelect : Menu
 
     private void InputShopStageSelect()
     {
+        _HandleShopStageSelectorMovement();
+        _HandleUpdatingShopCatalog();
+        _HandleUpdatingShopSelectedItemDisplay();
+    }
+    private void _HandleShopStageSelectorMovement()
+    {
+        int maxZ = Mathf.FloorToInt(itemCatalog.Length / 6) + 1;
+
         // Normally the moveAngle should be one of [-180, -90, 0, 90, 180].
         if (lastAngle == 0)
-            shopIndex.x += 1;
+        {
+            if (shopIndex.x == 5)
+            {
+                ChangeRoom(Rooms.MainStage);
+            }
+            else
+            {
+                shopIndex.x += 1; // selector moves right 1 place.
+                Helper.PlaySound(shopAudioMove);
+            }
+        }
         else if (lastAngle == 180 || lastAngle == -180)
-            shopIndex.x -= 1;
+        {
+            if (shopIndex.x > 0)
+            {
+                shopIndex.x -= 1; // selector moves left 1 place.
+                Helper.PlaySound(shopAudioMove);
+            }
+        }
         else if (lastAngle == 90)
-            shopIndex.y -= 1;
-        else
-            shopIndex.y += 1;
+        {
+            if (shopIndex.y == 1)
+            {
+                shopIndex.y = 0; // selector moves to top row.
+            }
+            if (shopIndex.z > 0)
+            {
+                shopIndex.z -= 1; // this tracks "scrolling" of items, "upward"
+                Helper.PlaySound(shopAudioMove);
+            }
+        }
+        else if (lastAngle == -90)
+        {
+            if (shopIndex.y == 0)
+            {
+                shopIndex.y = 1; // selector moves to lower row.
+            }
+            if (shopIndex.z < maxZ)
+            {
+                shopIndex.z += 1; // track "scrolling" of items, "downward"
+                Helper.PlaySound(shopAudioMove);
+            }
+        }
+    }
 
-        if (shopIndex.x > 5)
-            ChangeRoom(Rooms.MainStage);
-        else
-            Helper.PlaySound(shopAudioMove);
-
-        if (shopIndex.y < shopIndex.z)
-            shopIndex.z = shopIndex.y;
-        else if (shopIndex.y > shopIndex.z + 1)
-            shopIndex.z = shopIndex.y - 1;
-
-        int maxY = Mathf.CeilToInt(itemCatalog.Length / 6);
-        shopIndex.x = Mathf.Clamp(shopIndex.x, 0, 5);
-        shopIndex.y = Mathf.Clamp(shopIndex.y, 0, maxY - 1);
-        shopIndex.z = Mathf.Clamp(shopIndex.z, 0, maxY - 2);
-        if (shopIndex.y < 0)
-            shopIndex.y = 0;
-        if (shopIndex.z < 0)
-            shopIndex.z = 0;
+    private void _HandleUpdatingShopCatalog()
+    {
         GameObject item;
-
+        // Draw the image of each item.
         for (int x = 0; x < 6; x++)
         {
             for (int z = 0; z < 2; z++)
             {
-                if ((shopIndex.z + z) * 6 + x >= itemCatalog.Length)
+                if ((shopIndex.z - shopIndex.y + z) * 6 + x >= itemCatalog.Length)
+                {
                     itemSlots[z * 6 + x].sprite = null;
+                }
                 else
                 {
-                    item = Item.GetObjectFromItem(itemCatalog[(shopIndex.z + z) * 6 + x]);
+                    item = Item.GetObjectFromItem(itemCatalog[(shopIndex.z - shopIndex.y + z) * 6 + x]);
                     if (item != null)
-                        itemSlots[z * 6 + x].sprite = item.GetComponentInChildren<SpriteRenderer>().sprite;
+                    {
+                        itemSlots[z * 6 + x].sprite = item.GetComponentInChildren<SpriteRenderer>().sprite; 
+                    }
                     else
+                    {
                         itemSlots[z * 6 + x].sprite = null;
+                    }
                 }
-
-            }    
+            }
         }
-
-        item = Item.GetObjectFromItem(itemCatalog[(shopIndex.y) * 6 + shopIndex.x]);
-        if (item != null)
-            itemDisplay.sprite = item.GetComponentInChildren<SpriteRenderer>().sprite;
-        else
-            itemDisplay.sprite = null;
     }
+
+    private Boolean _HandleUpdatingShopSelectedItemDisplay()
+    {
+        GameObject item;
+        if ((shopIndex.z * 6 + shopIndex.x) < itemCatalog.Length)
+        {
+            item = Item.GetObjectFromItem(itemCatalog[(shopIndex.z) * 6 + shopIndex.x]); 
+        } 
+        else
+        {
+            item = null;
+        }
+            
+        if (item != null)
+        {
+            itemDisplay.sprite = item.GetComponentInChildren<SpriteRenderer>().sprite;
+        }
+        else
+        {
+            itemDisplay.sprite = null;
+        }
+        return item != null;
+            
+    }
+
     private void UpdateShopStageSelect()
     {
         shopSelect.sprite = Time.time % 0.5f < 0.25f ? selectFlashShop1 : selectFlashShop2;
 
         shopSelect.transform.position = new Vector3(shopSelectorOrigin.x + shopIndex.x * 32,
-                                                    shopSelectorOrigin.y - (shopIndex.y - shopIndex.z) * 48,
+                                                    shopSelectorOrigin.y - shopIndex.y * 48,
                                                     shopSelect.transform.position.z);
 
         if (purchaseCooldown > 0.0f)
-            purchaseCooldown -= Time.deltaTime;
-        else if (Input.GetButtonDown("Start"))
         {
+            purchaseCooldown -= Time.deltaTime;
+        } else if (Input.GetButtonDown("Start")) {
 
-            if ((shopIndex.y) * 6 + shopIndex.x >= Item.itemList.Length)
+            if ((shopIndex.z) * 6 + shopIndex.x >= Item.itemList.Length)
                 return;
 
-            Item.Items item = itemCatalog[(shopIndex.y) * 6 + shopIndex.x];
+            Item.Items item = itemCatalog[(shopIndex.z) * 6 + shopIndex.x];
             if (GameManager.bolts >= Item.itemList[(int)item].boltCost)
             {
                 Item.AddItemQuantity(item, 1);
@@ -753,64 +803,65 @@ public class Menu_StageSelect : Menu
                 Helper.PlaySound(stageAudioConfirm);
             }
             else
+            {
                 Helper.PlaySound(stageAudioCancel);
-
+            }
             purchaseCooldown = 0.25f;
         }
     }
     private void GUIShopStageSelect()
     {
         if (!cameraInRoom)
+        {
             return;
-
+        }
+        
         Vector2 cmrBase = new Vector2(Camera.main.rect.x * Screen.width, Camera.main.rect.y * Screen.height);
         int blockSize = (int)(Camera.main.pixelWidth / 16);
-
         font.label.fontSize = (int)(blockSize * 0.5625f);
 
-        GameObject item;
+        // Draw sprite images of each object in the catalog.
+        _HandleUpdatingShopCatalog();
 
-        // Draw the price of each item.
-        for (int x = 0; x < 6; x++)
+        // Indicate the currently-selected item (and how many user owns).
+        Boolean isValidItem = _HandleUpdatingShopSelectedItemDisplay();
+        if (isValidItem)
         {
-            for (int z = 0; z < 2; z++)
-            {
-                if ((shopIndex.z + z) * 6 + x >= itemCatalog.Length)
-                    itemSlots[z * 6 + x].sprite = null;
-                else
-                {
-                    item = Item.GetObjectFromItem(itemCatalog[(shopIndex.z + z) * 6 + x]);
-                    if (item != null)
-                    {
-                        GUI.Label(new Rect(cmrBase.x + blockSize * (2.425f + 2.00f * x),
-                                           cmrBase.y + blockSize * (3.5f + 2.75f * z),
-                                           blockSize * 2f,
-                                           blockSize * 2f),
-                                           Item.itemList[(int)itemCatalog[(shopIndex.z + z) * 6 + x]].boltCost.ToString("000"),
-                                           font.label);
-                    }
-                }
-            }
-        }
-
-        // Draw the quantity of the currently selected item.
-        if ((shopIndex.y) * 6 + shopIndex.x >= itemCatalog.Length)
-            item = null;
+            // If the item is in the catalog, then list how many are in our inventory.
+            GUI.Label(new Rect(cmrBase.x + 3.5f * blockSize,
+                                   cmrBase.y + 12.5f * blockSize,
+                                   2.125f * blockSize,
+                                   1.0f * blockSize),
+                                   Item.GetItemQuantity(itemCatalog[shopIndex.z * 6 + shopIndex.x]).ToString("000"),
+                                   font.label);
+        } 
         else
-            item = Item.GetObjectFromItem(itemCatalog[(shopIndex.y) * 6 + shopIndex.x]);
-
-        if (item != null)
         {
             GUI.Label(new Rect(cmrBase.x + 3.5f * blockSize,
-                               cmrBase.y + 12.5f * blockSize,
-                               2.125f * blockSize,
-                               1.0f * blockSize),
-                               Item.GetItemQuantity(itemCatalog[(shopIndex.y) * 6 + shopIndex.x]).ToString("000"),
-                               font.label);
+                                   cmrBase.y + 12.5f * blockSize,
+                                   2.125f * blockSize,
+                                   1.0f * blockSize),
+                                   0.ToString("000"),
+                                   font.label);
+        }
+
+        for (int i = 0; i < itemSlots.Length; i++)
+        { 
+            if (itemSlots[i].sprite != null)
+            {
+                int x = i % 6;
+                int y = Mathf.FloorToInt(i / 6);
+                GUI.Label(new Rect(cmrBase.x + blockSize * (2.425f + 2.00f * x),
+                                               cmrBase.y + blockSize * (3.5f + 2.75f * y),
+                                               blockSize * 2f,
+                                               blockSize * 2f),
+                                               Item.itemList[(int)itemCatalog[(y + shopIndex.z - shopIndex.y) * 6 + x]].boltCost.ToString("000"),
+                                               font.label);
+            }
+
         }
 
         // Draw the number of bolts left.
-
         GUI.Label(new Rect(cmrBase.x + 11.5f * blockSize,
                            cmrBase.y + 12.5f * blockSize,
                            2.125f * blockSize,
@@ -853,10 +904,12 @@ public class Menu_StageSelect : Menu
         if (Input.GetButtonDown("Start"))
         {
             if (dataIndex.x == 0)
-                GameManager.SaveData(dataIndex.y);
-            else
             {
+                GameManager.SaveData(dataIndex.y);
+                Helper.PlaySound(dataAudioChange);
+            } else {
                 GameManager.LoadData(dataIndex.y, true);
+                Helper.PlaySound(dataAudioChange);
                 RefreshFortressStages();
             }
         }
